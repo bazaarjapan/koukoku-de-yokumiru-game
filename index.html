@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>広告でよく見るゲーム MVP</title>
+    <link rel="stylesheet" href="./styles/main.css">
+  </head>
+  <body>
+    <main id="app" class="app">
+      <canvas id="gameCanvas" aria-label="3D runner battle game"></canvas>
+
+      <div id="damageFlash" aria-hidden="true"></div>
+
+      <section class="hud hud-top" aria-label="game status">
+        <div class="hud-item">
+          <span>STAGE</span>
+          <strong id="stageLabel">1</strong>
+        </div>
+        <div class="hud-item">
+          <span>SQUAD</span>
+          <strong id="squadLabel">0</strong>
+        </div>
+        <div class="hud-item">
+          <span>COINS</span>
+          <strong id="coinsLabel">0</strong>
+        </div>
+      </section>
+
+      <div id="bossHud" class="boss-hud" aria-hidden="true" style="display:none">
+        <span class="boss-label">BOSS</span>
+        <div class="boss-bar-track">
+          <div id="bossHpFill" class="boss-bar-fill"></div>
+        </div>
+      </div>
+
+      <section class="hud hud-side" aria-label="resource status">
+        <div class="hud-item compact">
+          <span>POWER</span>
+          <strong id="weaponLabel">-</strong>
+        </div>
+        <div class="hud-item compact">
+          <span>FOOD</span>
+          <strong id="foodLabel">0</strong>
+        </div>
+        <div class="hud-item compact">
+          <span>IRON</span>
+          <strong id="ironLabel">0</strong>
+        </div>
+      </section>
+
+      <section class="bottom-controls" aria-label="movement controls">
+        <button id="leftButton" class="move-button" type="button" aria-label="move left">←</button>
+        <div class="status-strip">
+          <span id="statusText">READY</span>
+          <meter id="progressMeter" min="0" max="100" value="0"></meter>
+        </div>
+        <button id="rightButton" class="move-button" type="button" aria-label="move right">→</button>
+      </section>
+
+      <section id="overlay" class="overlay is-visible" aria-live="polite">
+        <div class="dialog">
+          <p id="resultKicker" class="kicker">THREE.JS MVP</p>
+          <h1 id="overlayTitle">ラストラン・サバイバル</h1>
+          <p id="overlayBody">1人で出撃し、青い+1ゲートで部隊を増やしながら赤い大群とボスを押し返します。</p>
+
+          <div class="save-summary" aria-label="save summary">
+            <div>
+              <span>到達</span>
+              <strong id="savedStageLabel">1</strong>
+            </div>
+            <div>
+              <span>資金</span>
+              <strong id="savedCoinsLabel">0</strong>
+            </div>
+            <div>
+              <span>拠点</span>
+              <strong id="baseLevelLabel">1</strong>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button id="startButton" class="primary-button" type="button">出撃</button>
+            <button id="resetButton" class="secondary-button" type="button">リセット</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="confirmModal" class="confirm-modal" role="dialog" aria-modal="true" style="display:none">
+        <div class="confirm-dialog">
+          <p>保存データをリセットしますか？</p>
+          <div class="dialog-actions">
+            <button id="confirmOkBtn" class="secondary-button danger-button" type="button">リセット</button>
+            <button id="confirmCancelBtn" class="secondary-button" type="button">キャンセル</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
