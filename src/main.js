@@ -304,7 +304,7 @@ function startRun() {
   addGatePair(d(82), 14 + Math.floor(s * 0.9), -9);
   addRecruitLine(d(89), 34 + s * 5, 1.95, 0.58);
   addEnemySwarm(d(101), 0, cnt4, hp4, 1, 5.6, spd4, 0x6b0808);
-  addBoss(d(111), 320 + s * 100);
+  addBoss(d(111), 600 + s * 200);
   addFinishLine(d(117));
   run.distance = d(118);
 
@@ -546,6 +546,7 @@ function addBoss(distance, hp) {
   head.position.set(0, 2.0, -0.08);
   core.position.set(0, 1.15, -0.78);
   group.add(body, head, core);
+  group.scale.setScalar(1.45);
 
   const hpBar = makeHpBar(2.2, 0.18);
   hpBar.position.y = 2.55;
@@ -560,7 +561,7 @@ function addBoss(distance, hp) {
     x: 0,
     hp,
     maxHp: hp,
-    damage: 3 + Math.floor(run.stage * 1.5),
+    damage: 6 + Math.floor(run.stage * 2.5),
     alive: true,
     hpBar,
     coreMesh: core,
@@ -684,26 +685,29 @@ function updateBoss(dt) {
   const t = performance.now() * 0.005;
   activeBoss.group.rotation.y = Math.sin(t * 0.6) * 0.12;
 
-  const raging = activeBoss.hp < activeBoss.maxHp * 0.65;
-  const cooldownBase = Math.max(0.22, 0.88 - run.stage * 0.055);
-  const effectiveCooldown = raging ? cooldownBase * 0.5 : cooldownBase;
+  const raging = activeBoss.hp < activeBoss.maxHp * 0.75;
+  const frenzy = activeBoss.hp < activeBoss.maxHp * 0.3;
+  const cooldownBase = Math.max(0.13, 0.68 - run.stage * 0.06);
+  const effectiveCooldown = frenzy ? cooldownBase * 0.35 : raging ? cooldownBase * 0.52 : cooldownBase;
 
   if (activeBoss.coreMesh) {
-    const pulse = 0.5 + Math.sin(t * (raging ? 5 : 2.2)) * 0.5;
-    activeBoss.coreMesh.material.color.setHSL(raging ? 0.02 : 0.13, 1, 0.48 + pulse * 0.18);
-    activeBoss.group.scale.setScalar(raging ? 1 + Math.sin(t * 3.5) * 0.03 : 1);
+    const pulse = 0.5 + Math.sin(t * (frenzy ? 9 : raging ? 5 : 2.2)) * 0.5;
+    const hue = frenzy ? 0.0 : raging ? 0.02 : 0.13;
+    activeBoss.coreMesh.material.color.setHSL(hue, 1, 0.48 + pulse * 0.22);
+    const scaleBase = frenzy ? 1.45 : 1.45;
+    activeBoss.group.scale.setScalar(scaleBase + Math.sin(t * (frenzy ? 5 : 3.5)) * (frenzy ? 0.06 : 0.03));
   }
 
   if (run.bossAttackCooldown <= 0) {
     run.bossAttackCooldown = effectiveCooldown;
-    const shotCount = 1 + Math.floor(run.stage / 3) + (raging ? 2 : 0);
+    const shotCount = 2 + Math.floor(run.stage / 2) + (frenzy ? 4 : raging ? 2 : 0);
     const bx = activeBoss.group.position.x;
     const bz = activeBoss.group.position.z;
     for (let i = 0; i < shotCount; i += 1) {
-      const spread = shotCount > 1 ? (i / (shotCount - 1) - 0.5) * 3.2 : 0;
+      const spread = shotCount > 1 ? (i / (shotCount - 1) - 0.5) * 3.8 : 0;
       createEnemyBullet(bx + spread, bz);
     }
-    setStatus(raging ? "BOSS RAGE!" : "BOSS FIRE!");
+    setStatus(frenzy ? "BOSS FRENZY!!" : raging ? "BOSS RAGE!" : "BOSS FIRE!");
   }
 }
 
@@ -878,12 +882,12 @@ function createEnemyBullet(sourceX, sourceZ) {
   );
   group.add(glow, core);
 
-  const accuracy = Math.max(0.18, 0.85 - run.stage * 0.045);
+  const accuracy = Math.max(0.06, 0.70 - run.stage * 0.06);
   const targetX = run.playerX + (Math.random() - 0.5) * accuracy * 2;
   const dx = targetX - sourceX;
   const dz = playerZ - sourceZ;
   const len = Math.sqrt(dx * dx + dz * dz);
-  const speed = 13 + Math.min(12, run.stage * 0.9);
+  const speed = 17 + Math.min(18, run.stage * 1.4);
 
   group.position.set(sourceX, 0.65, sourceZ);
   bulletGroup.add(group);
