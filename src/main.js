@@ -274,7 +274,7 @@ function startRun() {
   run.squad = 3;
   run.reward = 0;
   run.progress = 0;
-  run.speed = 7.4 + Math.min(2.6, run.stage * 0.1);
+  run.speed = 5.0 + Math.min(5.0, run.stage * 0.4);
   run.shotCooldown = 0.12;
   run.bossAttackCooldown = 1.2;
   run.bossEncounter = false;
@@ -299,10 +299,10 @@ function startRun() {
   const cnt2 = 44 + s * 7;
   const cnt3 = 64 + s * 9;
   const cnt4 = 84 + s * 12;
-  const spd1 = 2.2 + s * 0.1;
-  const spd2 = 2.8 + s * 0.12;
-  const spd3 = 3.5 + s * 0.14;
-  const spd4 = 4.2 + s * 0.16;
+  const spd1 = 0.8 + s * 0.20;
+  const spd2 = 1.1 + s * 0.24;
+  const spd3 = 1.5 + s * 0.28;
+  const spd4 = 1.9 + s * 0.32;
   addRecruitLine(d(4), 5 + Math.floor(s * 0.6), 0.15, 0.86);
   addRecruitLine(d(5), 32 + s * 5, 1.92, 0.68);
   addGatePair(d(26), 6 + Math.floor(s * 0.6), -4);
@@ -691,7 +691,7 @@ function updateRun(dt) {
     run.speed = 0;
     updateBoss(dt);
   } else {
-    run.speed = 7.4 + Math.min(2.6, run.stage * 0.1);
+    run.speed = 5.0 + Math.min(5.0, run.stage * 0.4);
     run.progress += run.speed * dt;
   }
 
@@ -1044,20 +1044,25 @@ function handleEnemyCollisions() {
       const enemyRadius = 0.28;
       const touchesSquad = Math.abs(entity.group.position.x - run.playerX) < formationHalfWidth + enemyRadius;
 
-      if (!touchesSquad) {
+      if (touchesSquad) {
+        const loss = Math.min(run.squad, entity.damage);
+        changeSquad(-loss);
+        Audio.playPlayerDamage();
         entity.alive = false;
-        entity.group.visible = false;
+        dyingEntities.push({ group: entity.group, timer: 0, duration: 0.2 });
+        triggerShake(0.14 + loss * 0.04);
+        triggerDamageFlash();
+        setStatus(`DAMAGE -${loss}`);
         continue;
       }
+    }
 
-      const loss = Math.min(run.squad, entity.damage);
-      changeSquad(-loss);
-      Audio.playPlayerDamage();
-      entity.alive = false;
-      dyingEntities.push({ group: entity.group, timer: 0, duration: 0.2 });
-      triggerShake(0.14 + loss * 0.04);
+    if (z > playerZ + 0.6) {
+      triggerShake(0.4);
       triggerDamageFlash();
-      setStatus(`DAMAGE -${loss}`);
+      setStatus("BREAKTHROUGH!");
+      finishRun(false, "敵を倒し損ね、突破されました。");
+      return;
     }
   }
 }
@@ -1132,7 +1137,7 @@ function showMenu() {
   phase = "menu";
   ui.resultKicker.textContent = "THREE.JS MVP";
   ui.overlayTitle.textContent = "ラストラン・サバイバル";
-  ui.overlayBody.textContent = "1人で出撃し、青い+1ゲートで部隊を増やしながら赤い大群とボスを押し返します。";
+  ui.overlayBody.textContent = "青い+1ゲートで部隊を増員、迫る赤い大群を一兵残さず殲滅せよ。一体でも突破されたら敗北。";
   ui.startButton.textContent = "出撃";
   ui.overlay.classList.add("is-visible");
   setStatus("READY");
