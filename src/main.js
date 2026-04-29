@@ -315,7 +315,7 @@ function startRun() {
   addGatePair(d(82), 14 + Math.floor(s * 0.9), -9);
   addRecruitLine(d(89), 34 + s * 5, 1.95, 0.58);
   addEnemySwarm(d(101), 0, cnt4, hp4, 1, 5.6, spd4, 0x6b0808);
-  addBoss(d(111), 600 + s * 200);
+  addBoss(d(111), 3500 + s * 2500);
   addFinishLine(d(117));
   run.distance = d(118);
 
