@@ -1,5 +1,6 @@
 import * as THREE from "../vendor/three/three.module.js";
 import { loadSave, resetSave, saveGame } from "./game/Storage.js";
+import * as Audio from "./game/Audio.js";
 
 const canvas = document.querySelector("#gameCanvas");
 const ui = {
@@ -31,8 +32,8 @@ const ui = {
 };
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x63aeb3);
-scene.fog = new THREE.Fog(0x63aeb3, 34, 110);
+scene.background = new THREE.Color(0x060913);
+scene.fog = new THREE.FogExp2(0x060913, 0.015);
 
 const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 160);
 camera.position.set(0, 7.2, 12.5);
@@ -85,41 +86,45 @@ const run = {
 };
 
 const materials = {
-  water: new THREE.MeshStandardMaterial({ color: 0x0d7072, roughness: 0.45, metalness: 0.05 }),
-  road: new THREE.MeshStandardMaterial({ color: 0xc9c4bb, roughness: 0.72 }),
-  roadEdge: new THREE.MeshStandardMaterial({ color: 0x83909a, roughness: 0.62 }),
-  lane: new THREE.MeshStandardMaterial({ color: 0xf4c95d, roughness: 0.72 }),
-  soldierBody: new THREE.MeshStandardMaterial({ color: 0xf0d1a4, roughness: 0.48 }),
-  soldierVest: new THREE.MeshStandardMaterial({ color: 0x2476d4, roughness: 0.5 }),
-  soldierHead: new THREE.MeshStandardMaterial({ color: 0x36a8ff, roughness: 0.38 }),
-  gun: new THREE.MeshStandardMaterial({ color: 0x202b33, roughness: 0.48 }),
-  enemy: new THREE.MeshStandardMaterial({ color: 0xb71e35, roughness: 0.66 }),
-  enemyHead: new THREE.MeshStandardMaterial({ color: 0xff6b6b, roughness: 0.52 }),
-  boss: new THREE.MeshStandardMaterial({ color: 0xe6aba7, roughness: 0.62 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x03060a, roughness: 0.1, metalness: 0.8 }),
+  road: new THREE.MeshStandardMaterial({ color: 0x111822, roughness: 0.8 }),
+  roadEdge: new THREE.MeshStandardMaterial({ color: 0x00f0ff, roughness: 0.4, emissive: 0x0055aa, emissiveIntensity: 0.5 }),
+  lane: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00aaff, emissiveIntensity: 1.5, roughness: 0.2 }),
+  soldierBody: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.48 }),
+  soldierVest: new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.3, emissive: 0x002255, emissiveIntensity: 0.5 }),
+  soldierHead: new THREE.MeshStandardMaterial({ color: 0x00e5ff, roughness: 0.38 }),
+  gun: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.48 }),
+  enemy: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.66 }),
+  enemyHead: new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xaa0000, emissiveIntensity: 0.8, roughness: 0.3 }),
+  boss: new THREE.MeshStandardMaterial({ color: 0x221111, emissive: 0x330000, emissiveIntensity: 0.5, roughness: 0.62 }),
   bullet: new THREE.MeshBasicMaterial({
-    color: 0xffe040,
+    color: 0xffaa00,
     depthWrite: false
   }),
   bulletTrail: new THREE.MeshBasicMaterial({
-    color: 0xaaddff,
+    color: 0xff5500,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.6,
     depthWrite: false
   }),
-  crate: new THREE.MeshStandardMaterial({ color: 0xc98a2f, roughness: 0.58 }),
+  crate: new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xaa5500, emissiveIntensity: 0.5, roughness: 0.58 }),
   gatePositive: new THREE.MeshStandardMaterial({
-    color: 0x28a8ff,
+    color: 0x00ffff,
     transparent: true,
-    opacity: 0.68,
-    roughness: 0.35
+    opacity: 0.4,
+    emissive: 0x00aaff,
+    emissiveIntensity: 0.8,
+    roughness: 0.1
   }),
   gateNegative: new THREE.MeshStandardMaterial({
-    color: 0xff5d5d,
+    color: 0xff0044,
     transparent: true,
-    opacity: 0.58,
-    roughness: 0.35
+    opacity: 0.4,
+    emissive: 0xaa0000,
+    emissiveIntensity: 0.8,
+    roughness: 0.1
   }),
-  finish: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })
+  finish: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa, emissiveIntensity: 0.5 })
 };
 
 const geometries = {
@@ -165,6 +170,10 @@ function buildWorld() {
     water.receiveShadow = true;
     worldGroup.add(water);
   }
+
+  const grid = new THREE.GridHelper(100, 50, 0x0088ff, 0x002255);
+  grid.position.set(0, -0.08, -30);
+  worldGroup.add(grid);
 
   const road = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 150), materials.road);
   road.rotation.x = -Math.PI / 2;
@@ -257,6 +266,8 @@ function rebuildSquadVisual(count) {
 }
 
 function startRun() {
+  Audio.playClick();
+  Audio.initAudio();
   clearEntities();
   phase = "running";
   run.stage = saveData.stage;
@@ -583,10 +594,54 @@ function addFinishLine(distance) {
   entities.push({ type: "finish", group, baseZ: -distance });
 }
 
+const particles = [];
+const particleGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+const particleMats = {
+  enemy: new THREE.MeshBasicMaterial({ color: 0xff3333 }),
+  boss: new THREE.MeshBasicMaterial({ color: 0xffaa00 }),
+  spark: new THREE.MeshBasicMaterial({ color: 0x00ffff })
+};
+
+function spawnParticles(x, y, z, type, count = 8, speed = 4) {
+  const mat = particleMats[type] || particleMats.spark;
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(particleGeo, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    particles.push({
+      mesh,
+      life: 0.4 + Math.random() * 0.4,
+      age: 0,
+      vx: (Math.random() - 0.5) * speed,
+      vy: (Math.random() * 0.5 + 0.2) * speed,
+      vz: (Math.random() - 0.5) * speed
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.age += dt;
+    if (p.age >= p.life) {
+      scene.remove(p.mesh);
+      particles.splice(i, 1);
+    } else {
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
+      p.vy -= 15 * dt;
+      const scale = 1 - (p.age / p.life);
+      p.mesh.scale.setScalar(Math.max(0.01, scale));
+    }
+  }
+}
+
 function tick(time = performance.now()) {
   const dt = Math.min((time - lastFrameTime) / 1000, 0.033);
   lastFrameTime = time;
   update(dt);
+  updateParticles(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
@@ -707,6 +762,7 @@ function updateBoss(dt) {
       const spread = shotCount > 1 ? (i / (shotCount - 1) - 0.5) * 3.8 : 0;
       createEnemyBullet(bx + spread, bz);
     }
+    Audio.playBossAlert();
     setStatus(frenzy ? "BOSS FRENZY!!" : raging ? "BOSS RAGE!" : "BOSS FIRE!");
   }
 }
@@ -729,6 +785,9 @@ function autoShoot(dt) {
 
   for (let i = 0; i < firingSlots.length; i += 1) {
     createBullet(firingSlots[i], i);
+  }
+  if (firingSlots.length > 0) {
+    Audio.playShoot();
   }
 }
 
@@ -856,6 +915,8 @@ function applyBulletHit(target, damage) {
   if (target.hp > 0) {
     // Hit squish: peaks mid-animation via updateRun's sin curve
     target.hitRecover = 0.07;
+    spawnParticles(target.group.position.x, 1.0, entityZ(target), 'spark', 3, 2);
+    Audio.playHit();
   }
 
   if (target.hp <= 0) {
@@ -911,6 +972,7 @@ function updateEnemyBullets(dt) {
       const halfWidth = Math.min(2.75, 0.32 + Math.sqrt(Math.max(1, run.squad)) * 0.18);
       if (Math.abs(bx - run.playerX) < halfWidth + 0.22) {
         changeSquad(-b.damage);
+        Audio.playPlayerDamage();
         triggerDamageFlash();
         triggerShake(0.18 + b.damage * 0.03);
         spawnFloatNumber(`-${b.damage}`, "#ff5d5d");
@@ -957,6 +1019,7 @@ function handleGateCollisions() {
     if (Math.abs(z - playerZ) < 0.72 && Math.abs(run.playerX - gate.x) < gate.width) {
       gate.used = true;
       changeSquad(gate.value);
+      Audio.playGate(gate.value > 0);
       dyingEntities.push({ group: gate.group, timer: 0, duration: 0.28, scaleOut: true });
       const color = gate.value > 0 ? "#39d98a" : "#ff5d5d";
       spawnFloatNumber(`${gate.value > 0 ? "+" : ""}${gate.value}`, color);
@@ -989,6 +1052,7 @@ function handleEnemyCollisions() {
 
       const loss = Math.min(run.squad, entity.damage);
       changeSquad(-loss);
+      Audio.playPlayerDamage();
       entity.alive = false;
       dyingEntities.push({ group: entity.group, timer: 0, duration: 0.2 });
       triggerShake(0.14 + loss * 0.04);
@@ -1002,15 +1066,19 @@ function defeatTarget(target) {
   target.alive = false;
   target.hitRecover = 0;
   dyingEntities.push({ group: target.group, timer: 0, duration: 0.22 });
+  spawnParticles(target.group.position.x, 1.0, entityZ(target), target.type === "boss" ? 'boss' : 'enemy', 15, 6);
 
   if (target.type === "boss") {
+    Audio.playBossDie();
     finishRun(true, "ボス撃破。ステージクリア。");
   } else if (target.type === "crate") {
+    Audio.playPowerUp();
     run.firePower += target.power;
     run.reward += target.power * 18;
     spawnFloatNumber(`WEAPON +${target.power}`, "#38a7ff");
     setStatus(`WEAPON UP +${target.power}`);
   } else {
+    Audio.playEnemyDie();
     run.reward += 1;
     run.enemiesDefeated += 1;
     if (run.enemiesDefeated % 15 === 0) {
